@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>House Management Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+        .form-control, .btn {
+            border-radius: 20px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+        .list-group-item {
+            border-radius: 15px;
+        }
+    </style>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <!-- Firebase Initialization Script -->
+    <script>
+        const firebaseConfig = {
+     apiKey: "AIzaSyCBiW7bj81KvugybJ-P_0-PgUp7JoMx3_E",
+  authDomain: "housemanagement-c87e5.firebaseapp.com",
+  projectId: "housemanagement-c87e5",
+  storageBucket: "housemanagement-c87e5.appspot.com",
+  messagingSenderId: "669986369052",
+  appId: "1:669986369052:web:83ee6128e2ed1f3e5df9d9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let editId = null; // To track which document is being edited
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h2 class="text-center mb-5">House Management Dashboard</h2>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-5">
+            <div class="col-md-4">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Houses</h5>
+                        <p id="totalHouses" class="card-text display-4">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Active Houses</h5>
+                        <p id="activeHouses" class="card-text display-4">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Inactive Houses</h5>
+                        <p id="inactiveHouses" class="card-text display-4">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- House List -->
+        <h4 class="mt-5">House List</h4>
+        <ul id="houseList" class="list-group mt-3">
+            <!-- List items will be inserted here dynamically -->
+        </ul>
+    </div>
+
+    <script>
+        // Function to load dashboard statistics and list houses
+        function loadDashboard() {
+            db.collection("houses").get().then((querySnapshot) => {
+                let totalHouses = 0;
+                let activeHouses = 0;
+                let inactiveHouses = 0;
+                const houseList = document.getElementById('houseList');
+                houseList.innerHTML = '';
+                querySnapshot.forEach((doc) => {
+                    totalHouses++;
+                    const house = doc.data();
+                    if (house.status === 1) {
+                        activeHouses++;
+                    } else {
+                        inactiveHouses++;
+                    }
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.innerHTML = `
+                        <span><strong>Address:</strong> ${house.address} <br> 
+                        <strong>Number of People:</strong> ${house.numberOfPeople} <br>
+                        <strong>Status:</strong> ${house.status === 1 ? 'Active' : 'Inactive'}</span>
+                    `;
+                    houseList.appendChild(li);
+                });
+                document.getElementById('totalHouses').textContent = totalHouses;
+                document.getElementById('activeHouses').textContent = activeHouses;
+                document.getElementById('inactiveHouses').textContent = inactiveHouses;
+            });
+        }
+
+        // Initial load of dashboard
+        loadDashboard();
+    </script>
+</body>
+</html>
