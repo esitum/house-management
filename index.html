@@ -5,56 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>House Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
 </head>
 <body>
     <div class="container mt-5">
         <h2 class="mb-4">House Management</h2>
 
-        <!-- Search Section -->
+        <!-- Add House Form -->
         <div class="mb-4">
-            <input type="text" class="form-control" id="searchField" placeholder="Search by Address or Status">
+            <input type="text" id="address" class="form-control" placeholder="Address">
+            <input type="number" id="numberOfPeople" class="form-control mt-2" placeholder="Number of People">
+            <input type="number" id="status" class="form-control mt-2" placeholder="Status">
+            <button onclick="addHouse()" class="btn btn-primary mt-3">Add House</button>
         </div>
 
-        <!-- Form Section -->
-        <form id="houseForm">
-            <div class="mb-3">
-                <label for="address" class="form-label">Address</label>
-                <input type="text" class="form-control" id="address" placeholder="Enter address">
-            </div>
-            <div class="mb-3">
-                <label for="numberOfPeople" class="form-label">Number of People</label>
-                <input type="number" class="form-control" id="numberOfPeople" placeholder="Enter number of people">
-            </div>
-            <div class="mb-3">
-                <label for="status" class="form-label">Status</label>
-                <select class="form-select" id="status">
-                    <option value="1">Active</option>
-                    <option value="0">Inactive</option>
-                </select>
-            </div>
-            <button type="button" class="btn btn-primary" id="saveButton">Save</button>
-            <button type="reset" class="btn btn-secondary">Clear</button>
-        </form>
-
-        <!-- Table Section -->
-        <table class="table mt-4">
-            <thead>
-                <tr>
-                    <th>Address</th>
-                    <th>Number of People</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="houseList">
-                <!-- Dynamic Rows Here -->
-            </tbody>
-        </table>
+        <!-- House List -->
+        <h4>House List</h4>
+        <ul id="houseList" class="list-group"></ul>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // JavaScript code for handling insert, save, edit, delete, and search
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+             apiKey: "AIzaSyCBiW7bj81KvugybJ-P_0-PgUp7JoMx3_E",
+  authDomain: "housemanagement-c87e5.firebaseapp.com",
+  projectId: "housemanagement-c87e5",
+  storageBucket: "housemanagement-c87e5.appspot.com",
+  messagingSenderId: "669986369052",
+  appId: "1:669986369052:web:83ee6128e2ed1f3e5df9d9"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Function to Add House
+        function addHouse() {
+            const address = document.getElementById('address').value;
+            const numberOfPeople = document.getElementById('numberOfPeople').value;
+            const status = document.getElementById('status').value;
+
+            db.collection("houses").add({
+                address: address,
+                numberOfPeople: Number(numberOfPeople),
+                status: Number(status)
+            }).then((docRef) => {
+                console.log("Document written with ID: ", docRef.id);
+                displayHouses();
+            }).catch((error) => {
+                console.error("Error adding document: ", error);
+            });
+        }
+
+        // Function to Display Houses
+        function displayHouses() {
+            db.collection("houses").get().then((querySnapshot) => {
+                const houseList = document.getElementById('houseList');
+                houseList.innerHTML = '';
+                querySnapshot.forEach((doc) => {
+                    const house = doc.data();
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.textContent = `Address: ${house.address}, Number of People: ${house.numberOfPeople}, Status: ${house.status}`;
+                    houseList.appendChild(li);
+                });
+            });
+        }
+
+        // Initial Fetch of Houses
+        displayHouses();
     </script>
 </body>
 </html>
