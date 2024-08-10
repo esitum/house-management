@@ -34,11 +34,13 @@
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <!-- SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 
     <!-- Firebase Initialization Script -->
     <script>
         const firebaseConfig = {
-     apiKey: "AIzaSyCBiW7bj81KvugybJ-P_0-PgUp7JoMx3_E",
+       apiKey: "AIzaSyCBiW7bj81KvugybJ-P_0-PgUp7JoMx3_E",
   authDomain: "housemanagement-c87e5.firebaseapp.com",
   projectId: "housemanagement-c87e5",
   storageBucket: "housemanagement-c87e5.appspot.com",
@@ -84,6 +86,13 @@
             </div>
         </div>
 
+        <!-- Import/Export Buttons -->
+        <div class="mb-4 text-center">
+            <button class="btn btn-success" onclick="exportToExcel()">Export to Excel</button>
+            <input type="file" id="importFile" class="d-none" accept=".xlsx, .xls" onchange="importFromExcel(event)">
+            <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Import from Excel</button>
+        </div>
+
         <!-- House List -->
         <h4 class="mt-5">House List</h4>
         <ul id="houseList" class="list-group mt-3">
@@ -121,6 +130,46 @@
                 document.getElementById('activeHouses').textContent = activeHouses;
                 document.getElementById('inactiveHouses').textContent = inactiveHouses;
             });
+        }
+
+        // Function to export Firestore data to Excel
+        function exportToExcel() {
+            db.collection("houses").get().then((querySnapshot) => {
+                const houses = [];
+                querySnapshot.forEach((doc) => {
+                    houses.push(doc.data());
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(houses);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Houses");
+
+                XLSX.writeFile(workbook, "houses.xlsx");
+            });
+        }
+
+        // Function to import data from Excel and upload to Firestore
+        function importFromExcel(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const houses = XLSX.utils.sheet_to_json(worksheet);
+
+                houses.forEach(house => {
+                    db.collection("houses").add(house).then(() => {
+                        console.log("House added to Firestore:", house);
+                    }).catch((error) => {
+                        console.error("Error adding house:", error);
+                    });
+                });
+
+                loadDashboard(); // Refresh the dashboard
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         // Initial load of dashboard
