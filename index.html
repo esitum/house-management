@@ -38,7 +38,7 @@
     <!-- Firebase Initialization Script -->
     <script>
         const firebaseConfig = {
-        apiKey: "AIzaSyCBiW7bj81KvugybJ-P_0-PgUp7JoMx3_E",
+            apiKey: "AIzaSyCBiW7bj81KvugybJ-P_0-PgUp7JoMx3_E",
   authDomain: "housemanagement-c87e5.firebaseapp.com",
   projectId: "housemanagement-c87e5",
   storageBucket: "housemanagement-c87e5.appspot.com",
@@ -48,15 +48,17 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+
+        let editId = null; // To track which document is being edited
     </script>
 </head>
 <body>
     <div class="container">
         <h2 class="text-center mb-5">House Management System</h2>
 
-        <!-- Add House Form -->
+        <!-- Add/Edit House Form -->
         <div class="card p-4 shadow-sm">
-            <h4 class="card-title">Add New House</h4>
+            <h4 class="card-title" id="formTitle">Add New House</h4>
             <div class="form-group">
                 <label for="address">Address</label>
                 <input type="text" id="address" class="form-control" placeholder="Enter house address" required>
@@ -72,58 +74,131 @@
                     <option value="0">Inactive</option>
                 </select>
             </div>
-            <button onclick="addHouse()" class="btn btn-primary mt-4 w-100">Add House</button>
+            <button id="submitButton" onclick="submitHouse()" class="btn btn-primary mt-4 w-100">Add House</button>
+            <button id="cancelEditButton" onclick="cancelEdit()" class="btn btn-secondary mt-2 w-100 d-none">Cancel Edit</button>
         </div>
 
-        <!-- House List -->
+        <!-- Search Bar -->
         <h4 class="mt-5">House List</h4>
+        <div class="input-group mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search Houses">
+        </div>
+        
+        <!-- House List -->
         <ul id="houseList" class="list-group mt-3">
             <!-- List items will be inserted here dynamically -->
         </ul>
     </div>
 
     <script>
-        function addHouse() {
+        // Function to submit house (add or edit)
+        function submitHouse() {
             const address = document.getElementById('address').value.trim();
             const numberOfPeople = document.getElementById('numberOfPeople').value;
             const status = document.getElementById('status').value;
 
             if (address && numberOfPeople) {
-                db.collection("houses").add({
-                    address: address,
-                    numberOfPeople: Number(numberOfPeople),
-                    status: Number(status)
-                }).then((docRef) => {
-                    console.log("Document written with ID: ", docRef.id);
-                    displayHouses();
-                    clearForm();
-                }).catch((error) => {
-                    console.error("Error adding document: ", error);
-                });
+                if (editId) {
+                    // Edit existing house
+                    db.collection("houses").doc(editId).update({
+                        address: address,
+                        numberOfPeople: Number(numberOfPeople),
+                        status: Number(status)
+                    }).then(() => {
+                        console.log("Document successfully updated!");
+                        displayHouses();
+                        clearForm();
+                    }).catch((error) => {
+                        console.error("Error updating document: ", error);
+                    });
+                } else {
+                    // Add new house
+                    db.collection("houses").add({
+                        address: address,
+                        numberOfPeople: Number(numberOfPeople),
+                        status: Number(status)
+                    }).then((docRef) => {
+                        console.log("Document written with ID: ", docRef.id);
+                        displayHouses();
+                        clearForm();
+                    }).catch((error) => {
+                        console.error("Error adding document: ", error);
+                    });
+                }
             } else {
                 alert("Please fill in all fields.");
             }
         }
 
-        function displayHouses() {
+        // Function to Display Houses with Optional Search
+        function displayHouses(searchTerm = '') {
             db.collection("houses").get().then((querySnapshot) => {
                 const houseList = document.getElementById('houseList');
                 houseList.innerHTML = '';
                 querySnapshot.forEach((doc) => {
                     const house = doc.data();
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                    li.innerHTML = `
-                        <span><strong>Address:</strong> ${house.address} <br> 
-                        <strong>Number of People:</strong> ${house.numberOfPeople} <br>
-                        <strong>Status:</strong> ${house.status === 1 ? 'Active' : 'Inactive'}</span>
-                        <button class="btn btn-danger btn-sm" onclick="deleteHouse('${doc.id}')">Delete</button>
-                    `;
-                    houseList.appendChild(li);
+                    if (matchesSearch(house, searchTerm)) {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        li.innerHTML = `
+                            <span><strong>Address:</strong> ${house.address} <br> 
+                            <strong>Number of People:</strong> ${house.numberOfPeople} <br>
+                            <strong>Status:</strong> ${house.status === 1 ? 'Active' : 'Inactive'}</span>
+                            <div>
+                                <button class="btn btn-warning btn-sm me-2" onclick="editHouse('${doc.id}', '${house.address}', ${house.numberOfPeople}, ${house.status})">Edit</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteHouse('${doc.id}')">Delete</button>
+                            </div>
+                        `;
+                        houseList.appendChild(li);
+                    }
                 });
             });
         }
 
+        // Function to Edit House
+        function editHouse(id, address, numberOfPeople, status) {
+            editId = id;
+            document.getElementById('address').value = address;
+            document.getElementById('numberOfPeople').value = numberOfPeople;
+            document.getElementById('status').value = status;
+            document.getElementById('formTitle').textContent = 'Edit House';
+            document.getElementById('submitButton').textContent = 'Update House';
+            document.getElementById('cancelEditButton').classList.remove('d-none');
+        }
+
+        // Function to Cancel Edit
+        function cancelEdit() {
+            clearForm();
+        }
+
+        // Function to Clear Form
+        function clearForm() {
+            document.getElementById('address').value = '';
+            document.getElementById('numberOfPeople').value = '';
+            document.getElementById('status').value = '1';
+            document.getElementById('formTitle').textContent = 'Add New House';
+            document.getElementById('submitButton').textContent = 'Add House';
+            document.getElementById('cancelEditButton').classList.add('d-none');
+            editId = null;
+        }
+
+        // Helper function to match search term
+        function matchesSearch(house, searchTerm) {
+            const lowerCaseSearchTerm = searchTerm.toLowerCase();
+            return (
+                house.address.toLowerCase().includes(lowerCaseSearchTerm) ||
+                house.numberOfPeople.toString().includes(lowerCaseSearchTerm) ||
+                (house.status === 1 ? 'active' : 'inactive').includes(lowerCaseSearchTerm)
+            );
+        }
+
+        // Event listener for search input
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const searchTerm = this.value;
+            displayHouses(searchTerm);
+        });
+
+        // Function to Delete House
         function deleteHouse(id) {
             if (confirm("Are you sure you want to delete this house?")) {
                 db.collection("houses").doc(id).delete().then(() => {
@@ -133,12 +208,6 @@
                     console.error("Error removing document: ", error);
                 });
             }
-        }
-
-        function clearForm() {
-            document.getElementById('address').value = '';
-            document.getElementById('numberOfPeople').value = '';
-            document.getElementById('status').value = '1';
         }
 
         // Initial fetch of houses
